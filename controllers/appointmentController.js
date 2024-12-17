@@ -44,7 +44,7 @@ exports.getAllAppointments = async (req, res) => {
 };
 
 // Xóa lịch hẹn
-
+const Appointment = require("../models/Appointment");
 
 exports.deleteAppointment = async (req, res) => {
     try {
