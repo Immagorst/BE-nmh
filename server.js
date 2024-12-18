@@ -24,7 +24,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Cấu hình CORS
 app.use(cors({
-    origin: 'https://fe-web123.onrender.com/',
+    origin: 'https://fe-web123.onrender.com',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
