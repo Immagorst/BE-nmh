@@ -24,7 +24,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Cấu hình CORS
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: 'https://fe-web-k2w9.onrender.com',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
