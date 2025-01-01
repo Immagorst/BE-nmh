@@ -29,7 +29,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Cấu hình CORS
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: 'https://fe-nmh.onrender.com',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
