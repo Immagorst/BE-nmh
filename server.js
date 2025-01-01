@@ -6,9 +6,14 @@ const appointmentRoutes = require('./routes/appointmentRoutes');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const cors = require('cors');
+const serviceRoutes = require("./routes/serviceRoutes");
+const mongoose = require('mongoose');
 
 // Load biến môi trường
 dotenv.config();
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log("Đã kết nối MongoDB"))
+    .catch(err => console.error("Lỗi kết nối MongoDB:", err));
 
 // Kết nối MongoDB
 connectDB();
@@ -24,7 +29,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Cấu hình CORS
 app.use(cors({
-    origin: 'https://fe-web123.onrender.com',
+    origin: 'http://localhost:3000',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -48,6 +53,9 @@ app.get('/api/appointments', async (req, res) => {
         res.status(500).json({ message: 'Không thể tải lịch hẹn từ server' });
     }
 });
+app.use('/api/services', serviceRoutes);
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
+console.log("EMAIL_PASS:", process.env.EMAIL_PASS);
 
 // Lắng nghe cổng
 const PORT = process.env.PORT || 5000;

@@ -1,21 +1,21 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
+const dotenv = require('dotenv');
+dotenv.config();
 // Đăng ký người dùng
 exports.register = async (req, res) => {
     const { name, email, password } = req.body;
 
-    // Kiểm tra thông tin đầu vào
     if (!name || !email || !password) {
         return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin" });
     }
 
     try {
-        // Kiểm tra email đã tồn tại
+        // Kiểm tra email đã tồn tại chưa
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({ message: "Email đã được sử dụng. Vui lòng thử email khác." });
+            return res.status(400).json({ message: "Email đã được sử dụng" });
         }
 
         // Mã hóa mật khẩu
@@ -28,71 +28,60 @@ exports.register = async (req, res) => {
             password: hashedPassword,
         });
 
-        // Lưu người dùng vào cơ sở dữ liệu
+        // Lưu vào cơ sở dữ liệu
         await newUser.save();
 
         // Tạo token JWT
-        if (!process.env.JWT_SECRET) {
-            throw new Error("JWT_SECRET không được cấu hình trong môi trường");
-        }
         const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-        // Phản hồi thành công
-        res.status(201).json({
-            message: "Đăng ký thành công",
-            data: {
-                id: newUser._id,
-                name: newUser.name,
-                email: newUser.email,
-            },
-            token,
-        });
+        res.status(201).json({ message: "Đăng ký thành công", data: newUser, token });
     } catch (error) {
-        console.error("Lỗi khi đăng ký:", error.message);
         res.status(500).json({ message: "Đã xảy ra lỗi khi đăng ký", error: error.message });
     }
 };
 
 // Đăng nhập người dùng
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
-
-    // Kiểm tra thông tin đầu vào
-    if (!email || !password) {
-        return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin" });
-    }
-
     try {
-        // Tìm người dùng trong cơ sở dữ liệu
+        const { email, password } = req.body;
+
+        // Lấy thông tin tài khoản admin từ .env
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+
+        // Kiểm tra nếu là admin
+        if (email === adminEmail && password === adminPassword) {
+            const token = jwt.sign({ email: adminEmail, role: 'admin' }, process.env.JWT_SECRET, {
+                expiresIn: '1d',
+            });
+
+            return res.status(200).json({ message: 'Đăng nhập thành công (Admin)', token });
+        }
+
+        // Nếu không phải admin, kiểm tra tài khoản trong database
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: "Email không tồn tại. Vui lòng kiểm tra lại." });
+            return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
         }
 
-        // Kiểm tra mật khẩu
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: "Mật khẩu không đúng. Vui lòng thử lại." });
+        // Kiểm tra mật khẩu người dùng
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
         }
 
-        // Tạo token JWT
-        if (!process.env.JWT_SECRET) {
-            throw new Error("JWT_SECRET không được cấu hình trong môi trường");
-        }
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        // Tạo JWT token cho người dùng
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+            expiresIn: '1d',
+        });
 
-        // Phản hồi thành công
-        res.status(200).json({
-            message: "Đăng nhập thành công",
+        return res.status(200).json({
+            message: 'Đăng nhập thành công',
             token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-            },
+            user: { name: user.name, email: user.email, role: user.role },
         });
     } catch (error) {
-        console.error("Lỗi khi đăng nhập:", error.message);
-        res.status(500).json({ message: "Đã xảy ra lỗi khi đăng nhập", error: error.message });
+        console.error('Lỗi khi đăng nhập:', error);
+        return res.status(500).json({ message: 'Đã xảy ra lỗi trong quá trình đăng nhập' });
     }
 };
